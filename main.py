@@ -2,29 +2,29 @@ from bs4 import BeautifulSoup
 import requests
 # import time
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import smtplib
-from email.message import EmailMessage
 
 with open('secrets.txt', 'r') as file:
     exec(file.read())
 
 previous_title = 'Pracownicy naukowi i doktoranci WNE UW z grantami w konkursach NCN'
 
+with open('mail.html', 'r', encoding='utf-8') as file:
+    html_content = file.read()
+
 
 def send_email(receiver_email, subject, body):
-    msg = EmailMessage()
+    msg = MIMEMultipart()
     msg['Subject'] = subject
     msg['From'] = my_email
     msg['To'] = receiver_email
-    msg.set_content(body + f'''
-        <!DOCTYPE html>
-        <html>
-            <body>
-                  <p>Aby się wypisać kliknij w 
-                  <a href="https://www.wne.uw.edu.pl/members/profile/view/102">link</a>. </p>
-            </body>
-        </html>
-        ''', subtype='html')
+
+    # Ustawienie kodowania znaków na utf-8
+    message = MIMEText(html_content.format(body_content=body), 'html', 'utf-8')
+
+    msg.attach(message)
 
     with smtplib.SMTP_SSL("smtp.gmail.com") as connection:
         connection.login(user=my_email, password=my_password)
