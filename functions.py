@@ -5,24 +5,69 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
+import csv
 
 with open('secrets.txt', 'r') as file:
     exec(file.read())
 
 previous_title = 'Pracownicy naukowi i doktoranci WNE UW z grantami w konkursach NCN'
 
-with open('mail.html', 'r', encoding='utf-8') as file:
-    html_content = file.read()
+
+def validation(email):
+    email = email.lower()
+    # Wczytanie istniejących e-maili z pliku CSV
+    with open('email_list.csv', 'r') as file:
+        reader = csv.reader(file)
+        emails = [row[0].strip() for row in reader]
+
+    # Sprawdzenie, czy adres e-mail znajduje się na liście
+    if email in emails:
+        return False
+    else:
+        return True
 
 
-def send_email(receiver_email, subject, body):
+def signup(email):
+    try:
+        with open('email_list.csv', mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([email])
+        return True
+    except Exception as e:
+        print(f"Wystąpił problem podczas zapisu adresu e-mail: {e}")
+        return False
+
+
+def signout(email):
+    email = email.lower()
+    # Wczytanie istniejących e-maili z pliku CSV
+    with open('email_list.csv', 'r') as file:
+        reader = csv.reader(file)
+        emails = [row[0].strip() for row in reader]
+
+    # Sprawdzenie, czy adres e-mail znajduje się na liście
+    if email in emails:
+        emails = [row for row in emails if row != email]  # Usunięcie adresu e-mail
+
+        # Zapisanie zaktualizowanych danych z powrotem do pliku CSV
+        with open('email_list.csv', 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows([[row] for row in emails])
+        return f"Usunięto {email} z listy subskrybentów."
+    else:
+        return f"Adres e-mail {email} nie istnieje na liście subskrybentów."
+
+
+def send_email(receiver_email, subject, body, style_type):
     msg = MIMEMultipart()
     msg['Subject'] = subject
     msg['From'] = my_email
     msg['To'] = receiver_email
 
+    with open(f'templates/{style_type}.html', 'r', encoding='utf-8') as mail_file:
+        html_content = mail_file.read()
     # Ustawienie kodowania znaków na utf-8
-    message = MIMEText(html_content.format(body_content=body), 'html', 'utf-8')
+    message = MIMEText(html_content.format(body_content=body, user_email=receiver_email), 'html', 'utf-8')
 
     msg.attach(message)
 
@@ -55,7 +100,7 @@ def get_article(article_url):
 
         # print(content)
 
-        send_email(receiver, title, content)
+        send_email(receiver, title, content, "mail")
     except Exception as e:
         print(f"Błąd podczas pobierania artykułu: {e}")
 
@@ -86,7 +131,9 @@ def scrape_articles(last_title):
             print("done!")
 
 
-scrape_articles(previous_title)
+if __name__ == "__main__":
+    scrape_articles(previous_title)
+
 # while True:
 #     scrape_articles(previous_title)
 #     time.sleep(60)
