@@ -3,15 +3,10 @@ from functions import send_email, signup, signout, validation
 
 app = Flask(__name__)
 
-# with open('templates/confirmation.html', 'r', encoding='utf-8') as file:
-#     content = file.read()
-title = "Potwierdź swój email"
-content = "hello suer"
-
 
 @app.route('/')
 def contact():
-    return render_template('contact.html')
+    return render_template('main_page.html')
 
 
 @app.route('/signup', methods=['POST'])
@@ -26,8 +21,12 @@ def sign_up():
 @app.route('/confirmation/<email>')
 def confirmation(email):
     if validation(email):
+        title = "Potwierdź swój email"
+        with open('templates/confirmation.html', 'r', encoding='utf-8') as file:
+            content = file.read()
         send_email(email, title, content, "confirmation")
-        return f"Wysłaliśmy mail z potwierdzeniem na adres: {email}"
+        message = "Wysłaliśmy email z potwierdzeniem na adres: "
+        return render_template('content.html', message=message, email=email)
     else:
         return redirect(f'/failed/{email}')
 
@@ -36,7 +35,8 @@ def confirmation(email):
 def thank_you(email):
     if validation(email):
         signup(email)
-        return "Dziękujemy za potwierdzenie maila!"
+        message = "Dziękujemy za potwierdzenie maila!"
+        return render_template('content.html', message=message)
     else:
         return redirect(f'/failed/{email}')
 
@@ -44,12 +44,14 @@ def thank_you(email):
 @app.route('/signout/<email>')
 def sign_out(email):
     signout(email)
-    return f"Potwierdzamy wypisanie {email}"
+    message = "Potwierdzamy wypisanie: "
+    return render_template('content.html', message=message, email=email)
 
 
 @app.route('/failed/<email>')
 def failed(email):
-    return f"{email} jest już zapisany do newslettera"
+    message = "Podany adres jest już zapisany do newslettera: "
+    return render_template('content.html', message=message, email=email)
 
 
 if __name__ == '__main__':

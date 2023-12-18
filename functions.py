@@ -10,8 +10,6 @@ import csv
 with open('secrets.txt', 'r') as file:
     exec(file.read())
 
-previous_title = 'Pracownicy naukowi i doktoranci WNE UW z grantami w konkursach NCN'
-
 
 def validation(email):
     email = email.lower()
@@ -105,8 +103,9 @@ def get_article(article_url):
         print(f"Błąd podczas pobierania artykułu: {e}")
 
 
-def scrape_articles(last_title):
-    global previous_title
+def scrape_articles():
+    with open('previous_title.txt', 'r', encoding='utf-8') as title:
+        previous_title = title.read()
     # Scrappuję tekst strony
     response = requests.get("https://www.wne.uw.edu.pl/")
     wne_web = response.text
@@ -119,11 +118,12 @@ def scrape_articles(last_title):
 
     if news_container:
         article = news_container.find("a", target="_self")
-        title = article.getText()
-        if title != last_title:
+        article_title = article.getText()
+        if article_title != previous_title:
             url = article.get("href")
             get_article(url)
-            previous_title = title
+            with open('previous_title.txt', 'w', encoding='utf-8') as file1:
+                file1.write(article_title)
             found_new_title = True
 
         if found_new_title:
@@ -132,7 +132,7 @@ def scrape_articles(last_title):
 
 
 if __name__ == "__main__":
-    scrape_articles(previous_title)
+    scrape_articles()
 
 # while True:
 #     scrape_articles(previous_title)
