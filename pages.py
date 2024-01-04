@@ -13,13 +13,14 @@ def contact():
 def sign_up():
     if request.method == 'POST':
         email = request.form.get('user_email')
-        return redirect(url_for('confirmation', email=email))
+        frequency = request.form.get('frequency')
+        return redirect(url_for('confirmation', email=email, frequency=frequency))
     else:
         return redirect(url_for('contact'))
 
 
-@app.route('/confirmation/<email>')
-def confirmation(email):
+@app.route('/confirmation/<email>/<frequency>')
+def confirmation(email, frequency):
     if validation(email):
         title = "Potwierdź swój email"
         with open('templates/confirmation.html', 'r', encoding='utf-8') as file:
