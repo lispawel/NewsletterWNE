@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Newsletter Subscription Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 100px;
+        }
+        select {
+            padding: 5px 40px 5px 12px;
+            margin-left: 10px;
+            margin-right: 10px;
+            border: 1px solid #E8EAED;
+            border-radius: 5px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><polyline points="1 1 5 5 9 1" style="stroke:%239098A9;stroke-width:2px;fill:none;stroke-linecap:round;stroke-linejoin:round" /></svg>');
+            background-repeat: no-repeat;
+            background-position: calc(100% - 10px) center;
+            outline: none;
+            transition: all 150ms ease;
+        }
+        select:hover {
+            border-color: #0077FF;
+        }
+        select:focus {
+            border-color: #0077FF;
+            box-shadow: 0 0 0 2px rgba(0, 119, 255, 0.2);
+        }
+        .confirmation-message {
+            font-size: 24px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="confirmation-message">
+        Dziękujemy za potwierdzenie maila!
+    </div>
+    <div style="margin-top: 20px">
+        <form action="/signup2/wnenewsletter76@gmail.com" method="post">
+            <label for="frequency">Choose frequency:</label>
+            <select class="form-select" id="frequency" name="frequency" aria-label="Choose frequency">
+                <option value="uptodate" selected>Up to date</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <!-- Add more options if needed -->
+            </select>
+            <input type="hidden" name="user_email" value="{{ user_email }}">
+            <button type="submit" style="display: inline-block; padding: 5px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-family: 'Roboto', sans-serif;">Confirm</button>
+        </form>
+    </div>
+</body>
+
+</html>

@@ -13,10 +13,13 @@ with open('secrets.txt', 'r') as file:
 
 def validation(email):
     email = email.lower()
-    # Wczytanie istniejących e-maili z pliku CSV
-    with open('email_list.csv', 'r') as file:
-        reader = csv.reader(file)
-        emails = [row[0].strip() for row in reader]
+    # Wczytanie istniejących adresów e-mail z pliku CSV
+    try:
+        with open('email_list.csv', 'r') as file:
+            reader = csv.reader(file)
+            emails = [row[0].strip().lower() for row in reader if row]  # Pominięcie pustych wierszy
+    except FileNotFoundError:
+        emails = []
 
     # Sprawdzenie, czy adres e-mail znajduje się na liście
     if email in emails:
@@ -25,11 +28,11 @@ def validation(email):
         return True
 
 
-def signup(email):
+def signup(email, frequency):
     try:
         with open('email_list.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow([email])
+            writer.writerow([email, frequency])  # Zapis dwóch wartości oddzielnie
         return True
     except Exception as e:
         print(f"Wystąpił problem podczas zapisu adresu e-mail: {e}")
@@ -57,21 +60,26 @@ def signout(email):
 
 
 def send_email(receiver_email, subject, body, style_type):
-    msg = MIMEMultipart()
-    msg['Subject'] = subject
-    msg['From'] = my_email
-    msg['To'] = receiver_email
+    try:
+        msg = MIMEMultipart()
+        msg['Subject'] = subject
+        msg['From'] = my_email
+        msg['To'] = receiver_email
 
-    with open(f'templates/{style_type}.html', 'r', encoding='utf-8') as mail_file:
-        html_content = mail_file.read()
-    # Ustawienie kodowania znaków na utf-8
-    message = MIMEText(html_content.format(body_content=body, user_email=receiver_email), 'html', 'utf-8')
+        with open(f'templates/{style_type}.html', 'r', encoding='utf-8') as mail_file:
+            html_content = mail_file.read()
 
-    msg.attach(message)
+        # Ustawienie kodowania znaków na utf-8
+        message = MIMEText(html_content.format(body_content=body, user_email=receiver_email), 'html', 'utf-8')
+        msg.attach(message)
 
-    with smtplib.SMTP_SSL("smtp.gmail.com") as connection:
-        connection.login(user=my_email, password=my_password)
-        connection.send_message(msg)
+        with smtplib.SMTP_SSL("smtp.gmail.com") as connection:
+            connection.login(user=my_email, password=my_password)
+            connection.send_message(msg)
+    except smtplib.SMTPRecipientsRefused as e:
+        print(f"Recipient email refused: {e}")
+    except Exception as e:
+        print(f"An error occurred while sending the email: {e}")
 
 
 # Podaje link do nowego artykułu a następnie scrapuje jego tytuł i zawartość

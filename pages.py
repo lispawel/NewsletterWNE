@@ -13,14 +13,13 @@ def contact():
 def sign_up():
     if request.method == 'POST':
         email = request.form.get('user_email')
-        frequency = request.form.get('frequency')
-        return redirect(url_for('confirmation', email=email, frequency=frequency))
+        return redirect(url_for('confirmation', email=email))
     else:
         return redirect(url_for('contact'))
 
 
-@app.route('/confirmation/<email>/<frequency>')
-def confirmation(email, frequency):
+@app.route('/confirmation/<email>')
+def confirmation(email):
     if validation(email):
         title = "Potwierdź swój email"
         with open('templates/confirmation.html', 'r', encoding='utf-8') as file:
@@ -34,12 +33,26 @@ def confirmation(email, frequency):
 
 @app.route('/thankyou/<email>')
 def thank_you(email):
-    if validation(email):
-        signup(email)
-        message = "Dziękujemy za potwierdzenie maila!"
-        return render_template('content.html', message=message)
+    return render_template('frequency.html', user_email=email)
+
+
+@app.route('/signup2/<email>', methods=['POST'])
+def sign_up2(email):
+    if request.method == 'POST':
+        frequency = request.form.get('frequency')
+        if validation(email):
+            signup(email, frequency)
+            return redirect('/fuckyou/')
+        else:
+            return redirect(f'/failed/{email}')
     else:
-        return redirect(f'/failed/{email}')
+        return redirect(url_for('contact'))
+
+
+@app.route('/fuckyou/')
+def fuck_you():
+    message = "Dziękujemy za potwierdzenie maila!"
+    return render_template('content.html', message=message)
 
 
 @app.route('/signout/<email>')
