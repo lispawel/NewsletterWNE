@@ -59,6 +59,31 @@ def signout(email):
         return f"Adres e-mail {email} nie istnieje na liście subskrybentów."
 
 
+def send_mail_with_frequency(receiver_email, frequency, body):
+
+    with open('email_list.csv', mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.reader(file)
+
+    if frequency == 'daily':
+        body = reader
+    elif frequency == 'weekly':
+        pass
+    elif frequency == 'monthly':
+        pass
+    else:
+        pass
+
+    try:
+        msg = MIMEMultipart()
+        msg['Subject'] = f'Your {frequency} newsletter is here!'
+        msg['From'] = my_email
+        msg['To'] = receiver_email
+    except smtplib.SMTPRecipientsRefused as e:
+        print(f"Recipient email refused: {e}")
+    except Exception as e:
+        print(f"An error occurred while sending the email: {e}")
+
+
 def send_email(receiver_email, subject, body, style_type):
     try:
         msg = MIMEMultipart()
@@ -90,6 +115,7 @@ def get_article(article_url):
 
         soup = BeautifulSoup(new_article, "html.parser")
 
+        # scrapowanie zawartości artykułu
         title = soup.find("h1").getText()
         # print(title)
 
@@ -104,42 +130,83 @@ def get_article(article_url):
                 text = block.getText()
                 content += f"{text}\n\n"
 
+        scraped_date = soup.find("div", class_="ccm-custom-style-header16")
+        clean_date = scraped_date.getText().strip().split(',')[0]
+        print(clean_date)
+
         # print(content)
 
-        send_email(receiver, title, content, "mail")
+        # Jeśli użytkownik ma częstotliwość ustawioną na 'up to date' wysyłamy mu zawartość artykułu na tym poziomie
+        with open('email_list.csv', mode='r', newline='', encoding='utf-8') as file:
+            reader = csv.reader(file)
+
+            for row in reader:
+                email = row[0]
+                frequency = row[1]
+                if frequency == 'up to date':
+                    send_email(email, title, content, "mail")
+
+        # process_emails()
     except Exception as e:
         print(f"Błąd podczas pobierania artykułu: {e}")
 
 
 def scrape_articles():
-    with open('previous_title.txt', 'r', encoding='utf-8') as title:
-        previous_title = title.read()
-    # Scrappuję tekst strony
+    # Scrapujemy tekst strony
     response = requests.get("https://www.wne.uw.edu.pl/")
     wne_web = response.text
 
     soup = BeautifulSoup(wne_web, "html.parser")
 
+    # Wybieramy container w którym znajdują się artykuły
     news_container = soup.find("div", class_="ccm-block-page-list-pages")
 
     found_new_title = False
 
+    # Zapisujemy tytuły z pliku csv do listy jako previous_titles
     if news_container:
-        article = news_container.find("a", target="_self")
-        article_title = article.getText()
-        if article_title != previous_title:
-            url = article.get("href")
-            get_article(url)
-            with open('previous_title.txt', 'w', encoding='utf-8') as file1:
-                file1.write(article_title)
-            found_new_title = True
+        articles = news_container.find_all("a", target="_self")
+        previous_titles = []
+        with open('previous_titles.csv', mode='r', newline='', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                title = row[1]
+                previous_titles.append(title)
 
-        if found_new_title:
-            print(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
-            print("done!")
+        # Zczytujemy datę publikacji, tytyuł artykułu i jego url a następnie sprawdzamy czy artykuł był już wpisany na \
+        # listę, jeśli nie to jest dopisywany.
+        for article in articles:
+            article_title = article.getText()
+            # print(article_title)
+            url = article.get("href")
+            # print(url)
+            response = requests.get(url)
+            new_article = response.text
+            soup2 = BeautifulSoup(new_article, "html.parser")
+            scraped_date = soup2.find("div", class_="ccm-custom-style-header16")
+            clean_date = scraped_date.getText().strip().split(',')[0]
+            # print(clean_date)
+            row_data = [clean_date, article_title, url]
+            if article_title not in previous_titles:
+                get_article(url)
+                with open('previous_titles.csv', mode='a', newline='', encoding='utf-8') as file:
+                    writer = csv.writer(file)
+                    writer.writerow(row_data)
+
+    #     if article_title != previous_title:
+    #         url = article.get("href")
+    #         get_article(url)
+    #         with open('previous_title.txt', 'w', encoding='utf-8') as file1:
+    #             file1.write(article_title)
+    #         found_new_title = True
+    #
+    #     if found_new_title:
+    #         print(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+    #         print("done!")
 
 
 if __name__ == "__main__":
+    # process_emails()
     scrape_articles()
 
 # while True:
