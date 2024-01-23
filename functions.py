@@ -1,14 +1,15 @@
-from bs4 import BeautifulSoup
-import requests
-# import time
-from datetime import datetime
+import time
+from scraper import Scraper
+import csv
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
-import csv
 
+# Wczytujemy my_email i my_password z pliku secrets.txt
 with open('secrets.txt', 'r') as file:
     exec(file.read())
+
+scraper = Scraper(my_email=my_email, my_password=my_password)
 
 
 def validation(email):
@@ -27,113 +28,58 @@ def validation(email):
 
 def signup(email):
     try:
+        # Zapisuję nowego maila do pliku
         with open('email_list.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([email])
-        return True
     except Exception as e:
-        print(f"Wystąpił problem podczas zapisu adresu e-mail: {e}")
-        return False
+        print(f"Wystąpił problem podczas zapisu adresu {email}: {e}")
 
 
 def signout(email):
-    email = email.lower()
-    # Wczytanie istniejących e-maili z pliku CSV
-    with open('email_list.csv', 'r') as file:
-        reader = csv.reader(file)
-        emails = [row[0].strip() for row in reader]
-
-    # Sprawdzenie, czy adres e-mail znajduje się na liście
-    if email in emails:
-        emails = [row for row in emails if row != email]  # Usunięcie adresu e-mail
-
-        # Zapisanie zaktualizowanych danych z powrotem do pliku CSV
-        with open('email_list.csv', 'w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerows([[row] for row in emails])
-        return f"Usunięto {email} z listy subskrybentów."
-    else:
-        return f"Adres e-mail {email} nie istnieje na liście subskrybentów."
-
-
-def send_email(receiver_email, subject, body, style_type):
-    msg = MIMEMultipart()
-    msg['Subject'] = subject
-    msg['From'] = my_email
-    msg['To'] = receiver_email
-
-    with open(f'templates/{style_type}.html', 'r', encoding='utf-8') as mail_file:
-        html_content = mail_file.read()
-    # Ustawienie kodowania znaków na utf-8
-    message = MIMEText(html_content.format(body_content=body, user_email=receiver_email), 'html', 'utf-8')
-
-    msg.attach(message)
-
-    with smtplib.SMTP_SSL("smtp.gmail.com") as connection:
-        connection.login(user=my_email, password=my_password)
-        connection.send_message(msg)
-
-
-# Podaje link do nowego artykułu a następnie scrapuje jego tytuł i zawartość
-def get_article(article_url):
     try:
-        response = requests.get(article_url)
-        new_article = response.text
+        email = email.lower()
 
-        soup = BeautifulSoup(new_article, "html.parser")
+        # Wczytanie istniejących e-maili z pliku CSV
+        with open('email_list.csv', 'r') as file:
+            reader = csv.reader(file)
+            emails = [row[0].strip() for row in reader]
 
-        title = soup.find("h1").getText()
-        # print(title)
+        # Sprawdzenie, czy adres e-mail znajduje się na liście
+        if email in emails:
+            emails = [row for row in emails if row != email]
 
-        content_container = soup.find("div", class_="insideworkzone")
+            # Zapisanie zaktualizowanych danych z powrotem do pliku CSV
+            with open('email_list.csv', 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows([[row] for row in emails])
 
-        content = ""
-
-        if content_container:
-            text_blocks = content_container.find_all("p")
-
-            for block in text_blocks:
-                text = block.getText()
-                content += f"{text}\n\n"
-
-        # print(content)
-
-        send_email(receiver, title, content, "mail")
     except Exception as e:
-        print(f"Błąd podczas pobierania artykułu: {e}")
+        return f"Wystąpił błąd: {e}. Spróbuj ponownie później."
 
 
-def scrape_articles():
-    with open('previous_title.txt', 'r', encoding='utf-8') as title:
-        previous_title = title.read()
-    # Scrappuję tekst strony
-    response = requests.get("https://www.wne.uw.edu.pl/")
-    wne_web = response.text
+def send_confirmation_email(receiver_email):
+    try:
+        msg = MIMEMultipart()
+        msg['Subject'] = "Potwierdź swój email"
+        msg['From'] = my_email
+        msg['To'] = receiver_email
 
-    soup = BeautifulSoup(wne_web, "html.parser")
+        with open(f'templates/confirmation.html', 'r', encoding='utf-8') as mail_file:
+            html_content = mail_file.read()
+        message = MIMEText(html_content.format(user_email=receiver_email), 'html', 'utf-8')
 
-    news_container = soup.find("div", class_="ccm-block-page-list-pages")
+        msg.attach(message)
 
-    found_new_title = False
-
-    if news_container:
-        article = news_container.find("a", target="_self")
-        article_title = article.getText()
-        if article_title != previous_title:
-            url = article.get("href")
-            get_article(url)
-            with open('previous_title.txt', 'w', encoding='utf-8') as file1:
-                file1.write(article_title)
-            found_new_title = True
-
-        if found_new_title:
-            print(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
-            print("done!")
+        with smtplib.SMTP_SSL("smtp.gmail.com") as connection:
+            connection.login(user=my_email, password=my_password)
+            connection.send_message(msg)
+    except Exception as e:
+        print(f"An error occurred while sending email to {receiver_email}: {e}")
 
 
+# Scrapowanie co minute
 if __name__ == "__main__":
-    scrape_articles()
-
-# while True:
-#     scrape_articles(previous_title)
-#     time.sleep(60)
+    while True:
+        scraper.scrape_articles()
+        time.sleep(60)
